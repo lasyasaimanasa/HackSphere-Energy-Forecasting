@@ -1,0 +1,564 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Energy Microgrid Dashboard</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background: #f3f6fb;
+            color: #1e293b;
+        }
+
+        header {
+            background: #102a43;
+            color: white;
+            padding: 24px 30px;
+        }
+
+        header h1 {
+            font-size: 26px;
+            margin-bottom: 8px;
+        }
+
+        header p {
+            color: #cbd5e1;
+            font-size: 14px;
+        }
+
+        .container {
+            max-width: 1250px;
+            margin: 25px auto;
+            padding: 0 20px;
+        }
+
+        .section-title {
+            margin: 28px 0 15px;
+            font-size: 20px;
+        }
+
+        .card,
+        .chart-card,
+        .table-wrapper {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 3px 12px rgba(15, 23, 42, 0.06);
+        }
+
+        .card {
+            padding: 22px;
+            min-width: 0;
+        }
+
+        .card p {
+            color: #64748b;
+            font-size: 14px;
+            margin-bottom: 12px;
+        }
+
+        .upload-card {
+            border: 1px solid #dbeafe;
+        }
+
+        .upload-form {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 12px;
+            margin-top: 16px;
+        }
+
+        input[type="file"] {
+            max-width: 100%;
+            padding: 8px;
+            border: 1px solid #cbd5e1;
+            border-radius: 7px;
+            background: #f8fafc;
+        }
+
+        button {
+            padding: 11px 18px;
+            border: none;
+            border-radius: 7px;
+            background: #2563eb;
+            color: white;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #1d4ed8;
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: wait;
+        }
+
+        .help-text {
+            margin-top: 12px;
+            color: #64748b;
+            font-size: 12px;
+            line-height: 1.6;
+        }
+
+        .flash-messages {
+            margin-top: 15px;
+        }
+
+        .flash-message {
+            padding: 12px;
+            margin-top: 8px;
+            border-radius: 7px;
+            background: #eff6ff;
+            color: #1d4ed8;
+            font-size: 14px;
+            overflow-wrap: anywhere;
+        }
+
+        .cards {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 18px;
+        }
+
+        .metric {
+            font-size: 27px;
+            font-weight: bold;
+            overflow-wrap: anywhere;
+        }
+
+        .status {
+            display: inline-block;
+            margin-top: 12px;
+            padding: 7px 10px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .renewable {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .main-grid {
+            background: #dbeafe;
+            color: #1d4ed8;
+        }
+
+        .alert {
+            background: #fee2e2;
+            color: #b91c1c;
+        }
+
+        .normal {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .chart-card {
+            padding: 22px;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 340px;
+        }
+
+        .table-wrapper {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            min-width: 720px;
+            border-collapse: collapse;
+        }
+
+        th,
+        td {
+            padding: 13px 15px;
+            text-align: left;
+            border-bottom: 1px solid #e2e8f0;
+            font-size: 13px;
+        }
+
+        th {
+            background: #eaf0f8;
+            color: #334155;
+            white-space: nowrap;
+        }
+
+        tbody tr:hover {
+            background: #f8fafc;
+        }
+
+        .empty {
+            padding: 25px;
+            text-align: center;
+            color: #64748b;
+        }
+
+        .disclaimer {
+            margin-top: 20px;
+            padding: 14px;
+            border-radius: 8px;
+            background: #fff7ed;
+            color: #9a3412;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        footer {
+            text-align: center;
+            padding: 25px;
+            color: #64748b;
+            font-size: 12px;
+        }
+
+        @media (max-width: 750px) {
+            header {
+                padding: 20px;
+            }
+
+            header h1 {
+                font-size: 22px;
+            }
+
+            .container {
+                padding: 0 12px;
+            }
+
+            .cards {
+                grid-template-columns: 1fr;
+            }
+
+            .upload-form {
+                align-items: stretch;
+                flex-direction: column;
+            }
+
+            .upload-form input,
+            .upload-form button {
+                width: 100%;
+            }
+
+            .chart-container {
+                height: 280px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <h1>Smart Energy Microgrid</h1>
+        <p>Energy Demand Forecasting and Intelligent Grid Control</p>
+    </header>
+
+    <main class="container">
+
+        <!-- CSV Upload Section -->
+        <h2 class="section-title">Upload Telemetry Data</h2>
+
+        <section class="card upload-card">
+            <p>
+                Upload a CSV file containing hourly energy telemetry.
+                The application validates the data, generates demand
+                estimates, and applies grid-switching rules.
+            </p>
+
+            <form
+                class="upload-form"
+                method="POST"
+                enctype="multipart/form-data"
+                id="uploadForm"
+            >
+                <input
+                    type="file"
+                    name="telemetry_file"
+                    accept=".csv,text/csv"
+                    required
+                    aria-label="Choose telemetry CSV file"
+                >
+
+                <button type="submit" id="uploadButton">
+                    Generate Forecast
+                </button>
+            </form>
+
+            <p class="help-text">
+                Required columns: timestamp, ambient_temp_c,
+                humidity_pct, solar_irradiance_wm2.
+                Upload a CSV containing no more than 5,000 data rows.
+            </p>
+
+            {% with messages = get_flashed_messages() %}
+                {% if messages %}
+                    <div class="flash-messages" role="status">
+                        {% for message in messages %}
+                            <div class="flash-message">
+                                {{ message }}
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            {% endwith %}
+        </section>
+
+        <!-- Summary Cards -->
+        <h2 class="section-title">Energy Overview</h2>
+
+        <section class="cards">
+            <div class="card">
+                <p>First Forecasted Demand</p>
+
+                <div class="metric">
+                    {% if latest %}
+                        {{ "%.1f"|format(latest["predicted_demand_kw"]|float) }} kW
+                    {% else %}
+                        N/A
+                    {% endif %}
+                </div>
+
+                <span class="status main-grid">
+                    Forecast Estimate
+                </span>
+            </div>
+
+            <div class="card">
+                <p>Renewable Storage Mode Periods</p>
+
+                <div class="metric">{{ renewable_count }}</div>
+
+                <span class="status renewable">
+                    Grid Switching
+                </span>
+            </div>
+
+            <div class="card">
+                <p>Critical Overload Alerts</p>
+
+                <div class="metric">{{ critical_count }}</div>
+
+                {% if critical_count > 0 %}
+                    <span class="status alert">
+                        Attention Required
+                    </span>
+                {% else %}
+                    <span class="status normal">
+                        No Critical Alerts
+                    </span>
+                {% endif %}
+            </div>
+        </section>
+
+        <!-- Demand Chart -->
+        <h2 class="section-title">Demand Forecast</h2>
+
+        <section class="chart-card">
+            {% if records %}
+                <div class="chart-container">
+                    <canvas
+                        id="demandChart"
+                        aria-label="Energy demand forecast chart"
+                        role="img"
+                    ></canvas>
+                </div>
+            {% else %}
+                <div class="empty">
+                    Upload a telemetry CSV to generate a forecast chart.
+                </div>
+            {% endif %}
+        </section>
+
+        <!-- Forecast Table -->
+        <h2 class="section-title">Forecast and Grid Status</h2>
+
+        <section class="table-wrapper">
+            {% if records %}
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Timestamp</th>
+                            <th>Predicted Demand (kW)</th>
+                            <th>Grid Mode</th>
+                            <th>Overload Alert</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        {% for row in records %}
+                            <tr>
+                                <td>{{ row["timestamp"] }}</td>
+
+                                <td>
+                                    {{ "%.2f"|format(row["predicted_demand_kw"]|float) }}
+                                </td>
+
+                                <td>
+                                    {% if row["grid_mode"] == "Renewable Storage Mode" %}
+                                        <span class="status renewable">
+                                            Renewable Storage
+                                        </span>
+                                    {% else %}
+                                        <span class="status main-grid">
+                                            Main Grid
+                                        </span>
+                                    {% endif %}
+                                </td>
+
+                                <td>
+                                    {% if row["overload_alert"]|string|lower in ["true", "1", "yes"] %}
+                                        <span class="status alert">
+                                            CRITICAL OVERLOAD
+                                        </span>
+                                    {% else %}
+                                        <span class="status normal">
+                                            Normal
+                                        </span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <div class="empty">
+                    No forecast records are available yet.
+                </div>
+            {% endif %}
+        </section>
+
+        <div class="disclaimer">
+            <strong>Prototype notice:</strong>
+            If local fallback mode is enabled, the displayed values are
+            estimates from a local formula, not predictions from the
+            published Zoho QuickML model.
+        </div>
+    </main>
+
+    <footer>
+        Smart Energy Microgrid &amp; Demand Forecasting Engine
+        <br>
+        HackSphere 3.0 Project Prototype
+    </footer>
+
+    <!-- Safely pass Flask data to JavaScript -->
+    <script id="forecast-data" type="application/json">{{ records | tojson }}</script>
+
+    {% if records %}
+    <script>
+        const forecastDataElement =
+            document.getElementById("forecast-data");
+
+        const forecastRecords = JSON.parse(
+            forecastDataElement.textContent
+        );
+
+        const labels = forecastRecords.map(
+            row => row.timestamp
+        );
+
+        const demand = forecastRecords.map(
+            row => Number(row.predicted_demand_kw)
+        );
+
+        const chartCanvas =
+            document.getElementById("demandChart");
+
+        new Chart(chartCanvas, {
+            type: "line",
+
+            data: {
+                labels: labels,
+
+                datasets: [
+                    {
+                        label: "Predicted Demand (kW)",
+                        data: demand,
+                        borderColor: "#2563eb",
+                        backgroundColor: "rgba(37, 99, 235, 0.12)",
+                        fill: true,
+                        tension: 0.3,
+                        pointRadius: 3
+                    },
+                    {
+                        label: "160 kW Switching Threshold",
+                        data: labels.map(() => 160),
+                        borderColor: "#f59e0b",
+                        borderDash: [6, 5],
+                        pointRadius: 0,
+                        fill: false
+                    },
+                    {
+                        label: "200 kW Critical Alert Threshold",
+                        data: labels.map(() => 200),
+                        borderColor: "#dc2626",
+                        borderDash: [6, 5],
+                        pointRadius: 0,
+                        fill: false
+                    }
+                ]
+            },
+
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+
+                interaction: {
+                    intersect: false,
+                    mode: "index"
+                },
+
+                scales: {
+                    x: {
+                        title: {
+                            display: true,
+                            text: "Forecast Timestamp"
+                        },
+
+                        ticks: {
+                            maxTicksLimit: 8,
+                            maxRotation: 0
+                        }
+                    },
+
+                    y: {
+                        beginAtZero: true,
+
+                        title: {
+                            display: true,
+                            text: "Demand (kW)"
+                        }
+                    }
+                }
+            }
+        });
+    </script>
+    {% endif %}
+
+    <script>
+        const uploadForm = document.getElementById("uploadForm");
+        const uploadButton = document.getElementById("uploadButton");
+
+        uploadForm.addEventListener("submit", function () {
+            uploadButton.disabled = true;
+            uploadButton.textContent = "Generating Forecast...";
+        });
+    </script>
+</body>
+</html>
