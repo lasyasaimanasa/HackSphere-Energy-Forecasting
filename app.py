@@ -2,12 +2,21 @@
 from flask import Flask, render_template, request, redirect, url_for, flash
 from pathlib import Path
 import pandas as pd
+from dotenv import load_dotenv
+import os
 
 from predict import predict
 from forecast_controller import apply_transition_rules
 
+load_dotenv()
+
 app = Flask(__name__)
-app.secret_key = "local-development-key-change-before-deployment"
+app.secret_key = os.getenv("FLASK_SECRET_KEY")
+
+if not app.secret_key:
+    raise RuntimeError(
+        "FLASK_SECRET_KEY is missing. Set it in your .env file."
+    )
 
 BASE_DIR = Path(__file__).resolve().parent
 FORECAST_FILE = BASE_DIR / "forecast_results.csv"
@@ -135,7 +144,13 @@ def dashboard():
         for row in records
     )
 
-    latest = records[0] if records else {}
+    latest = records[-1] if records else {}
+
+    battery_soc = (
+        float(latest.get("battery_soc_pct", 0))
+        if latest
+        else 0
+    )
 
     return render_template(
         "dashboard.html",
@@ -143,6 +158,7 @@ def dashboard():
         critical_count=critical_count,
         renewable_count=renewable_count,
         latest=latest,
+        battery_soc=battery_soc,
     )
 
 
